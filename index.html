@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Mi Cuerpo Humano! - Laboratorio Interactivo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: #f0fdf4;
+      color: #1e293b;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    h1, h2, .font-fun {
+      font-family: 'Fredoka One', cursive;
+    }
+
+    /* Fondo de Laboratorio Alegre y Luminoso */
+    .lab-background {
+      background-color: #f8fafc;
+      background-image: 
+        radial-gradient(at 10% 10%, #e0f2fe 0px, transparent 50%),
+        radial-gradient(at 90% 10%, #fef3c7 0px, transparent 50%),
+        radial-gradient(at 50% 90%, #dcfce7 0px, transparent 50%),
+        radial-gradient(at 90% 90%, #fce7f3 0px, transparent 50%);
+      position: relative;
+    }
+
+    /* Pizarra científica de fondo */
+    .chalkboard-pattern {
+      background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+
+    /* Contenedor estilo tarjeta infantil */
+    .kid-card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 4px solid #38bdf8;
+      border-radius: 28px;
+      box-shadow: 0 12px 30px -5px rgba(14, 165, 233, 0.2);
+    }
+
+    /* Fichas / Órganos arrastables */
+    .organ-card {
+      background: #ffffff;
+      border: 3px solid #38bdf8;
+      border-radius: 20px;
+      cursor: grab;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 6px 16px rgba(56, 189, 248, 0.25);
+      touch-action: none;
+    }
+
+    .organ-card:hover {
+      transform: translateY(-4px) scale(1.04);
+      border-color: #f43f5e;
+      box-shadow: 0 10px 22px rgba(244, 63, 94, 0.3);
+    }
+
+    .organ-card.dragging {
+      opacity: 0.6;
+      transform: scale(0.95);
+      cursor: grabbing;
+    }
+
+    .organ-card.placed {
+      pointer-events: none;
+      opacity: 0.35;
+      filter: grayscale(0.6);
+      border-color: #cbd5e1;
+      box-shadow: none;
+    }
+
+    /* Dropzones (Casillas de destino) */
+    .dropzone {
+      background: #ffffff;
+      border: 3px dashed #38bdf8;
+      border-radius: 18px;
+      transition: all 0.25s ease;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .dropzone.drag-over {
+      background: #f0f9ff;
+      border-color: #facc15;
+      transform: scale(1.08);
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.7);
+    }
+
+    .dropzone.correct {
+      background: #f0fdf4;
+      border: 3.5px solid #22c55e;
+      box-shadow: 0 6px 18px rgba(34, 197, 94, 0.3);
+      animation: bounceWin 0.5s ease;
+    }
+
+    @keyframes bounceWin {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Líneas de conexión idénticas a la imagen guía */
+    .connector-line {
+      stroke: #334155;
+      stroke-width: 2.5;
+      stroke-dasharray: none;
+    }
+
+    .connector-line.placed {
+      stroke: #16a34a;
+      stroke-width: 4;
+      filter: drop-shadow(0 2px 4px rgba(34, 197, 94, 0.4));
+    }
+
+    .target-dot {
+      fill: #ef4444;
+      stroke: #ffffff;
+      stroke-width: 2;
+      animation: pulseDot 1.6s infinite alternate;
+    }
+
+    @keyframes pulseDot {
+      0% { r: 4.5; }
+      100% { r: 7.5; }
+    }
+
+    /* Botón animado estilo juego infantil */
+    .btn-fun {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-fun:hover {
+      transform: translateY(-3px) scale(1.03);
+    }
+    .btn-fun:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    /* Matraces decorativos flotantes */
+    .floating-flask {
+      animation: floatSlow 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatSlow {
+      0% { transform: translateY(0px) rotate(-3deg); }
+      100% { transform: translateY(-12px) rotate(3deg); }
+    }
+  </style>
+</head>
+<body class="lab-background chalkboard-pattern min-h-screen flex flex-col items-center justify-between p-2 md:p-4">
+
+  <!-- ENCABEZADO TIPO BANNER INFANTIL -->
+  <header class="w-full max-w-6xl flex flex-wrap justify-between items-center gap-3 bg-white/90 border-4 border-sky-400 rounded-3xl p-3 md:px-6 shadow-xl z-20 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <!-- Icono Matraz Cómico -->
+      <div class="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-tr from-amber-400 to-yellow-300 rounded-2xl border-3 border-amber-500 flex items-center justify-center text-3xl shadow-md floating-flask">
+        🧪
+      </div>
+      <div>
+        <h1 class="text-2xl md:text-3xl text-sky-500 tracking-wide drop-shadow-sm">
+          MI CUERPO HUMANO
+        </h1>
+        <p class="text-xs md:text-sm text-slate-500 font-bold">¡Laboratorio Divertido de Anatomía!</p>
+      </div>
+    </div>
+
+    <!-- Banner Central Estilo Ribbon -->
+    <div class="hidden lg:flex items-center bg-gradient-to-r from-sky-400 to-blue-500 text-white font-fun px-8 py-2 rounded-full shadow-md border-2 border-white text-lg">
+      ✨ 3.º y 4.º DE PRIMARIA ✨
+    </div>
+
+    <!-- Puntuación y Sonido -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 bg-amber-100 border-2 border-amber-400 px-4 py-1.5 rounded-2xl shadow-inner">
+        <span class="text-2xl animate-bounce">⭐</span>
+        <div>
+          <span class="text-[10px] text-amber-700 font-extrabold block leading-none">PUNTOS</span>
+          <span id="score-display" class="text-xl md:text-2xl font-fun text-amber-600">0</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 bg-emerald-100 border-2 border-emerald-400 px-4 py-1.5 rounded-2xl shadow-inner">
+        <span class="text-2xl">🎯</span>
+        <div>
+          <span class="text-[10px] text-emerald-700 font-extrabold block leading-none">LOGRADOS</span>
+          <span id="progress-display" class="text-xl md:text-2xl font-fun text-emerald-600">0/10</span>
+        </div>
+      </div>
+
+      <button id="btn-sound" onclick="toggleSound()" class="p-2.5 rounded-2xl bg-slate-100 border-2 border-slate-300 text-slate-600 hover:bg-slate-200 transition font-bold text-xl">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- ÁREA PRINCIPAL INTERACTIVA -->
+  <main class="w-full max-w-7xl my-3 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 items-center z-10">
+    
+    <!-- BANCO IZQUIERDO DE ÓRGANOS (5 ÓRGANOS) -->
+    <section class="lg:col-span-3 flex flex-col gap-2.5 order-2 lg:order-1" id="left-organ-bank">
+      <!-- Generado dinámicamente -->
+    </section>
+
+    <!-- ÁREA CENTRAL: NIÑO DE LA IMAGENGUÍA + LÍNEAS PRECISAS + CASILLAS -->
+    <section class="lg:col-span-6 relative flex flex-col items-center justify-center kid-card p-2 md:p-4 min-h-[560px] md:min-h-[640px] order-1 lg:order-2 overflow-hidden">
+      
+      <!-- Fondo decorativo de laboratorio infantil -->
+      <div class="absolute inset-0 opacity-10 pointer-events-none flex justify-between p-4">
+        <span class="text-6xl">⚛️</span>
+        <span class="text-6xl">🧫</span>
+        <span class="text-6xl">🧬</span>
+      </div>
+
+      <!-- BANNER SUPERIOR MY BODY / MI CUERPO -->
+      <div class="z-20 mb-1">
+        <div class="bg-sky-400 text-white font-fun px-10 py-1.5 rounded-full text-lg md:text-xl shadow-md border-2 border-white tracking-widest uppercase">
+          MI CUERPO
+        </div>
+      </div>
+
+      <!-- CONTENEDOR DEL CANVAS CON NIÑO Y LÍNEAS -->
+      <div class="relative w-full max-w-[520px] h-[480px] md:h-[540px] flex items-center justify-center" id="body-canvas-container">
+        
+        <!-- SVG DE LÍNEAS EXACTAS A LA IMAGEN -->
+        <svg id="svg-connectors" class="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 520 540">
+          <!-- Las líneas se dibujan por JS conectando las casillas con los puntos exactos del niño -->
+        </svg>
+
+        <!-- ILUSTRACIÓN FIDELÍSIMA DEL NIÑO CON CABELLO CASTAÑO RIZADO Y SHORT AZUL -->
+        <div class="relative w-[280px] md:w-[310px] h-[420px] md:h-[470px] z-0">
+          <svg viewBox="0 0 300 460" class="w-full h-full drop-shadow-lg">
+            <!-- CABELLO CASTAÑO RIZADO ABUNDANTE (Fiel a la imagen) -->
+            <g id="curly-hair">
+              <path d="M 70 110 C 40 90 45 40 90 30 C 100 10 150 5 175 25 C 200 10 245 20 245 60 C 265 70 265 110 245 125 C 255 145 225 165 200 150 C 120 165 70 145 70 110 Z" fill="#6c3b1e" />
+              <!-- Rizos y Textura -->
+              <circle cx="85" cy="80" r="18" fill="#7d4625" />
+              <circle cx="115" cy="50" r="22" fill="#7d4625" />
+              <circle cx="150" cy="35" r="24" fill="#7d4625" />
+              <circle cx="190" cy="45" r="22" fill="#7d4625" />
+              <circle cx="225" cy="75" r="20" fill="#7d4625" />
+              <circle cx="230" cy="110" r="18" fill="#7d4625" />
+            </g>
+
+            <!-- OREJAS -->
+            <circle cx="95" cy="120" r="12" fill="#ffcdb2" />
+            <circle cx="205" cy="120" r="12" fill="#ffcdb2" />
+
+            <!-- CARA / CABEZA -->
+            <ellipse cx="150" cy="125" rx="55" ry="48" fill="#ffcdb2" />
+
+            <!-- MEJILLAS ROSADAS -->
+            <circle cx="120" cy="132" r="8" fill="#f4a261" opacity="0.4" />
+            <circle cx="180" cy="132" r="8" fill="#f4a261" opacity="0.4" />
+
+            <!-- OJOS OVALADOS GRANDES CARICATURESCOS -->
+            <g id="eyes">
+              <!-- Ojo Izquierdo -->
+              <ellipse cx="128" cy="118" rx="11" ry="14" fill="#ffffff" stroke="#2d3748" stroke-width="2"/>
+              <circle cx="130" cy="120" r="7" fill="#4a3b32" />
+              <circle cx="132" cy="117" r="2.5" fill="#ffffff" />
+              <!-- Ojo Derecho -->
+              <ellipse cx="172" cy="118" rx="11" ry="14" fill="#ffffff" stroke="#2d3748" stroke-width="2"/>
+              <circle cx="170" cy="120" r="7" fill="#4a3b32" />
+              <circle cx="168" cy="117" r="2.5" fill="#ffffff" />
+            </g>
+
+            <!-- CEJAS EXPRESIVAS Y NARIZ CÓMICA -->
+            <path d="M 116 100 Q 128 94 138 100" stroke="#522b14" stroke-width="3.5" stroke-linecap="round" fill="none" />
+            <path d="M 162 100 Q 172 94 184 100" stroke="#522b14" stroke-width="3.5" stroke-linecap="round" fill="none" />
+            <path d="M 150 120 Q 146 126 152 127" stroke="#e07a5f" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+            <!-- BOCA ALEGRE Y SONRIENTE ABIERTA (Con Lengua) -->
+            <g id="mouth-graphic">
+              <path d="M 126 138 Q 150 168 174 138 Z" fill="#9e2a2b" stroke="#2d3748" stroke-width="2" />
+              <path d="M 134 150 Q 150 140 166 150 Q 150 168 134 150 Z" fill="#ff758f" />
+            </g>
+
+            <!-- CUELLO -->
+            <rect x="140" y="168" width="20" height="16" fill="#ffcdb2" rx="4" />
+
+            <!-- BRAZOS ABIERTOS Y EXTENDIDOS (Fiel a la pose de la imagen) -->
+            <!-- Brazo Izquierdo -->
+            <path d="M 118 190 L 52 205 C 45 207 40 195 48 188 L 108 178 Z" fill="#ffcdb2" stroke="#e07a5f" stroke-width="1.5" />
+            <!-- Mano Izquierda (5 deditos simples) -->
+            <circle cx="42" cy="198" r="10" fill="#ffcdb2" />
+
+            <!-- Brazo Derecho -->
+            <path d="M 182 190 L 248 205 C 255 207 260 195 252 188 L 192 178 Z" fill="#ffcdb2" stroke="#e07a5f" stroke-width="1.5" />
+            <!-- Mano Derecha -->
+            <circle cx="258" cy="198" r="10" fill="#ffcdb2" />
+
+            <!-- TORSO / PECHO DESNUDO (Como en la foto de anatomía) -->
+            <path d="M 112 180 L 188 180 L 182 290 L 118 290 Z" fill="#ffcdb2" />
+
+            <!-- OMBLIGO -->
+            <circle cx="150" cy="275" r="2.5" fill="#e07a5f" />
+
+            <!-- PANTALONES CORTOS AZULES CON CINTURÓN NARANJA (Fiel a la imagen) -->
+            <path d="M 116 288 L 184 288 L 190 340 L 153 340 L 150 305 L 147 340 L 110 340 Z" fill="#0284c7" stroke="#0369a1" stroke-width="2" />
+            <rect x="116" y="288" width="68" height="10" fill="#f97316" rx="2" /> <!-- Cinturón Naranja -->
+
+            <!-- PIERNAS DELGADAS Y LARGAS -->
+            <rect x="122" y="340" width="20" height="85" fill="#ffcdb2" rx="6" />
+            <rect x="158" y="340" width="20" height="85" fill="#ffcdb2" rx="6" />
+
+            <!-- PIES DESCALZOS (Fiel a la foto) -->
+            <ellipse cx="126" cy="428" rx="16" ry="7" fill="#ffcdb2" />
+            <ellipse cx="174" cy="428" rx="16" ry="7" fill="#ffcdb2" />
+          </svg>
+        </div>
+
+        <!-- DROPZONES (CASILLAS DE DESTINO VACÍAS PARA ADIVINAR) -->
+        <!-- LADO IZQUIERDO (5 Órganos) -->
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-eye" data-organ="eye" style="top: 2%; left: 0%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-lungs" data-organ="lungs" style="top: 22%; left: -2%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-kidney" data-organ="kidney" style="top: 41%; left: -4%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-spleen" data-organ="spleen" style="top: 60%; left: -2%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-liver" data-organ="liver" style="top: 80%; left: 0%;">
+          ?
+        </div>
+
+        <!-- LADO DERECHO (5 Órganos) -->
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-brain" data-organ="brain" style="top: 2%; right: 0%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-mouth" data-organ="mouth" style="top: 22%; right: -2%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-heart" data-organ="heart" style="top: 41%; right: -4%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-stomach" data-organ="stomach" style="top: 60%; right: -2%;">
+          ?
+        </div>
+
+        <div class="dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20"
+             id="drop-intestine" data-organ="intestine" style="top: 80%; right: 0%;">
+          ?
+        </div>
+
+      </div>
+
+      <!-- BARRA DE ASISTENCIA CIENTÍFICA -->
+      <div id="feedback-bar" class="w-full mt-2 bg-sky-50 border-2 border-sky-300 rounded-2xl p-2.5 text-center flex items-center justify-center gap-3 shadow-sm">
+        <span class="text-2xl animate-bounce">💡</span>
+        <span id="feedback-text" class="text-sm md:text-base font-bold text-sky-800">
+          ¡Arrastra cada órgano hacia la casilla señalada en el cuerpo!
+        </span>
+      </div>
+
+    </section>
+
+    <!-- BANCO DERECHO DE ÓRGANOS (5 ÓRGANOS) -->
+    <section class="lg:col-span-3 flex flex-col gap-2.5 order-3" id="right-organ-bank">
+      <!-- Generado dinámicamente -->
+    </section>
+
+  </main>
+
+  <!-- BOTONES DE ACCIÓN Y CONTROL -->
+  <footer class="w-full max-w-6xl flex flex-wrap justify-between items-center gap-3 bg-white/80 border-2 border-slate-200 p-3 rounded-2xl z-10 backdrop-blur-sm">
+    <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-slate-500">
+      <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+      Modo Interactivo Aprendizaje Activo
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="giveHint()" class="btn-fun px-4 py-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-fun rounded-xl text-sm border-2 border-amber-600 shadow-md flex items-center gap-2">
+        <span>🔍</span> Dar una Pista
+      </button>
+
+      <button onclick="resetGame()" class="btn-fun px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white font-fun rounded-xl text-sm border-2 border-rose-700 shadow-md flex items-center gap-2">
+        <span>🔄</span> Reiniciar
+      </button>
+    </div>
+  </footer>
+
+  <!-- MODAL DE FELICITACIÓN Y CELEBRACIÓN -->
+  <div id="win-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
+    <div class="kid-card p-6 md:p-8 max-w-md w-11/12 text-center flex flex-col items-center gap-4 border-4 border-yellow-400 shadow-2xl">
+      
+      <div class="text-6xl animate-bounce my-1">🏆</div>
+
+      <h2 class="text-3xl font-fun text-amber-500 tracking-wide">
+        ¡INCREÍBLE TRABAJO!
+      </h2>
+
+      <p class="text-slate-600 text-base font-bold">
+        ¡Has completado todo el cuerpo humano correctamente! Eres un/a verdadero/a Mini-Científico/a.
+      </p>
+
+      <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 w-full flex justify-around my-2">
+        <div>
+          <span class="text-xs text-amber-700 font-extrabold block">PUNTAJE FINAL</span>
+          <span id="final-score" class="text-3xl font-fun text-amber-600">1000</span>
+        </div>
+        <div class="border-r-2 border-amber-200"></div>
+        <div>
+          <span class="text-xs text-amber-700 font-extrabold block">MEDALLA</span>
+          <span class="text-lg font-fun text-sky-500">Super Biólogo</span>
+        </div>
+      </div>
+
+      <button onclick="resetGame(); closeModal();" class="btn-fun w-full py-3 text-lg font-fun text-white bg-emerald-500 hover:bg-emerald-600 border-2 border-emerald-700 rounded-2xl shadow-lg">
+        🌟 Jugar de Nuevo
+      </button>
+    </div>
+  </div>
+
+  <!-- SCRIPT DE INTERACCIÓN, DIBUJO Y GAMIFICACIÓN -->
+  <script>
+    // DATOS CON LOS 10 ÓRGANOS Y SUS PUNTOS EXACTOS EN EL CUERPO (FIDELIDAD TOTAL A LA IMAGEN)
+    const ORGANS_DATA = [
+      {
+        id: 'eye',
+        name: 'Ojo',
+        side: 'left',
+        dropId: 'drop-eye',
+        targetPoint: { x: 220, y: 130 }, // Ojo izquierdo en la cara
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#ffffff" stroke="#e2e8f0" stroke-width="3"/><circle cx="32" cy="32" r="13" fill="#0284c7"/><circle cx="32" cy="32" r="6" fill="#1e293b"/><circle cx="36" cy="28" r="3" fill="#ffffff"/></svg>`
+      },
+      {
+        id: 'lungs',
+        name: 'Pulmones',
+        side: 'left',
+        dropId: 'drop-lungs',
+        targetPoint: { x: 228, y: 225 }, // Pecho / Pulmón
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 12 18 C 12 8 28 14 28 34 C 28 48 14 52 12 34 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="2"/><path d="M 52 18 C 52 8 36 14 36 34 C 36 48 50 52 52 34 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="2"/><path d="M 28 22 L 36 22 L 32 8 Z" fill="#94a3b8"/></svg>`
+      },
+      {
+        id: 'kidney',
+        name: 'Riñones',
+        side: 'left',
+        dropId: 'drop-kidney',
+        targetPoint: { x: 232, y: 285 }, // Zona de riñones
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 16 18 C 6 26 10 48 22 43 C 28 38 22 23 16 18 Z" fill="#9f1239" stroke="#be123c" stroke-width="2"/><path d="M 48 18 C 58 26 54 48 42 43 C 36 38 42 23 48 18 Z" fill="#9f1239" stroke="#be123c" stroke-width="2"/></svg>`
+      },
+      {
+        id: 'spleen',
+        name: 'Bazo',
+        side: 'left',
+        dropId: 'drop-spleen',
+        targetPoint: { x: 236, y: 310 }, // Costado abdomen
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 18 15 C 38 10 48 35 36 52 C 18 58 10 35 18 15 Z" fill="#701a75" stroke="#a21caf" stroke-width="2"/></svg>`
+      },
+      {
+        id: 'liver',
+        name: 'Hígado',
+        side: 'left',
+        dropId: 'drop-liver',
+        targetPoint: { x: 240, y: 335 }, // Abdomen superior derecho
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 10 24 C 25 12 55 18 54 38 C 45 52 20 48 10 38 Z" fill="#991b1b" stroke="#7f1d1d" stroke-width="2"/></svg>`
+      },
+      {
+        id: 'brain',
+        name: 'Cerebro',
+        side: 'right',
+        dropId: 'drop-brain',
+        targetPoint: { x: 275, y: 75 }, // Parte superior de la cabeza
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 15 32 C 10 20 25 10 32 18 C 40 10 55 20 50 32 C 58 42 42 55 32 48 C 20 55 8 42 15 32 Z" fill="#f472b6" stroke="#db2777" stroke-width="2.5"/></svg>`
+      },
+      {
+        id: 'mouth',
+        name: 'Boca',
+        side: 'right',
+        dropId: 'drop-mouth',
+        targetPoint: { x: 270, y: 160 }, // Boca
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 10 26 Q 32 10 54 26 Q 32 58 10 26 Z" fill="#e11d48" stroke="#9f1239" stroke-width="2"/><path d="M 18 26 Q 32 38 46 26 Z" fill="#ffffff"/></svg>`
+      },
+      {
+        id: 'heart',
+        name: 'Corazón',
+        side: 'right',
+        dropId: 'drop-heart',
+        targetPoint: { x: 265, y: 235 }, // Corazón
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 32 55 C 10 35 10 15 23 15 C 30 15 32 22 32 22 C 32 22 34 15 41 15 C 54 15 54 35 32 55 Z" fill="#dc2626" stroke="#fca5a5" stroke-width="2"/></svg>`
+      },
+      {
+        id: 'stomach',
+        name: 'Estómago',
+        side: 'right',
+        dropId: 'drop-stomach',
+        targetPoint: { x: 262, y: 295 }, // Estómago
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 20 18 C 35 12 50 25 45 42 C 38 55 18 48 20 32 Z" fill="#ea580c" stroke="#c2410c" stroke-width="2"/></svg>`
+      },
+      {
+        id: 'intestine',
+        name: 'Intestino',
+        side: 'right',
+        dropId: 'drop-intestine',
+        targetPoint: { x: 255, y: 350 }, // Intestinos
+        iconSvg: `<svg class="w-10 h-10" viewBox="0 0 64 64"><path d="M 14 20 Q 32 14 48 20 Q 52 32 45 38 Q 20 30 18 42 Q 45 45 32 56 Z" fill="none" stroke="#f97316" stroke-width="9" stroke-linecap="round"/></svg>`
+      }
+    ];
+
+    // ESTADO DEL JUEGO
+    let score = 0;
+    let placedCount = 0;
+    let soundEnabled = true;
+    let draggedOrganId = null;
+
+    // EFECTOS DE SONIDO SINTETIZADOS CON WEB AUDIO API
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+          osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.25); // A5
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.25);
+        } else if (type === 'wrong') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(140, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'win') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15);
+          osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3);
+          osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.45);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.6);
+        }
+      } catch (e) {
+        console.log("Audio no activado interactivamente");
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btn-sound').textContent = soundEnabled ? '🔊' : '🔇';
+    }
+
+    // CONSTRUCCIÓN DEL BANCO DE ÓRGANOS
+    function renderOrganBanks() {
+      const leftBank = document.getElementById('left-organ-bank');
+      const rightBank = document.getElementById('right-organ-bank');
+      leftBank.innerHTML = '';
+      rightBank.innerHTML = '';
+
+      // Orden mezclado para mayor diversión
+      const shuffled = [...ORGANS_DATA].sort(() => Math.random() - 0.5);
+
+      shuffled.forEach(organ => {
+        const card = document.createElement('div');
+        card.className = 'organ-card p-2.5 flex items-center gap-3 relative';
+        card.id = `card-${organ.id}`;
+        card.draggable = true;
+        card.dataset.organ = organ.id;
+
+        card.innerHTML = `
+          <div class="p-1 bg-sky-50 rounded-xl border border-sky-200 flex items-center justify-center">
+            ${organ.iconSvg}
+          </div>
+          <div>
+            <h3 class="font-fun text-base md:text-lg text-slate-800 leading-tight">${organ.name}</h3>
+            <span class="text-[10px] text-sky-600 font-extrabold uppercase tracking-wide">Órgano</span>
+          </div>
+        `;
+
+        // Eventos Ratón (PC)
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+
+        // Eventos Táctiles (Pantallas Táctiles / Tablets / Móviles)
+        card.addEventListener('touchstart', handleTouchStart, { passive: false });
+        card.addEventListener('touchmove', handleTouchMove, { passive: false });
+        card.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+        if (organ.side === 'left') {
+          leftBank.appendChild(card);
+        } else {
+          rightBank.appendChild(card);
+        }
+      });
+    }
+
+    // DIBUJO DE LÍNEAS DE CONEXIÓN FIDELÍSIMAS A LA IMAGEN GUÍA
+    function updateSvgLines() {
+      const svg = document.getElementById('svg-connectors');
+      const container = document.getElementById('body-canvas-container');
+      const containerRect = container.getBoundingClientRect();
+
+      svg.innerHTML = '';
+
+      ORGANS_DATA.forEach(organ => {
+        const dropEl = document.getElementById(organ.dropId);
+        if (!dropEl) return;
+
+        const dropRect = dropEl.getBoundingClientRect();
+
+        // Mapeo preciso al sistema viewBox de 520x540
+        const scaleX = 520 / containerRect.width;
+        const scaleY = 540 / containerRect.height;
+
+        const isLeftZone = organ.side === 'left';
+        const startX = ((isLeftZone ? dropRect.right : dropRect.left) - containerRect.left) * scaleX;
+        const startY = ((dropRect.top + dropRect.height / 2) - containerRect.top) * scaleY;
+
+        const endX = organ.targetPoint.x;
+        const endY = organ.targetPoint.y;
+
+        const isPlaced = dropEl.classList.contains('correct');
+
+        // Línea Recta Limpia Conectora (Exacta a la imagen)
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', startX);
+        line.setAttribute('y1', startY);
+        line.setAttribute('x2', endX);
+        line.setAttribute('y2', endY);
+        line.setAttribute('class', `connector-line ${isPlaced ? 'placed' : ''}`);
+        svg.appendChild(line);
+
+        // Punto de destino en el cuerpo del niño
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', endX);
+        circle.setAttribute('cy', endY);
+        circle.setAttribute('r', isPlaced ? '7' : '5');
+        circle.setAttribute('class', 'target-dot');
+        if (isPlaced) {
+          circle.setAttribute('fill', '#22c55e');
+        }
+        svg.appendChild(circle);
+      });
+    }
+
+    // MANEJO DE ARRASTRAR (MOUSE)
+    function handleDragStart(e) {
+      draggedOrganId = this.dataset.organ;
+      this.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', draggedOrganId);
+    }
+
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      draggedOrganId = null;
+    }
+
+    function setupDropzones() {
+      const dropzones = document.querySelectorAll('.dropzone');
+      dropzones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!zone.classList.contains('correct')) {
+            zone.classList.add('drag-over');
+          }
+        });
+
+        zone.addEventListener('dragleave', () => {
+          zone.classList.remove('drag-over');
+        });
+
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+          const organId = e.dataTransfer.getData('text/plain') || draggedOrganId;
+          checkPlacement(organId, zone);
+        });
+      });
+    }
+
+    // MANEJO DE TÁCTIL (MOBILE / TABLETS)
+    let touchElement = null;
+
+    function handleTouchStart(e) {
+      e.preventDefault();
+      touchElement = this;
+      draggedOrganId = this.dataset.organ;
+      this.classList.add('dragging');
+    }
+
+    function handleTouchMove(e) {
+      if (!touchElement) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+      document.querySelectorAll('.dropzone').forEach(z => z.classList.remove('drag-over'));
+      if (target && target.closest('.dropzone')) {
+        const dz = target.closest('.dropzone');
+        if (!dz.classList.contains('correct')) {
+          dz.classList.add('drag-over');
+        }
+      }
+    }
+
+    function handleTouchEnd(e) {
+      if (!touchElement) return;
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+      document.querySelectorAll('.dropzone').forEach(z => z.classList.remove('drag-over'));
+
+      if (target && target.closest('.dropzone')) {
+        const zone = target.closest('.dropzone');
+        checkPlacement(draggedOrganId, zone);
+      }
+
+      touchElement.classList.remove('dragging');
+      touchElement = null;
+      draggedOrganId = null;
+    }
+
+    // COMPROBACIÓN DE COLOCACIÓN
+    function checkPlacement(organId, zone) {
+      if (!organId || zone.classList.contains('correct')) return;
+
+      const targetOrgan = zone.dataset.organ;
+      const organData = ORGANS_DATA.find(o => o.id === organId);
+
+      if (organId === targetOrgan) {
+        // ACIERTO
+        zone.classList.add('correct');
+        zone.innerHTML = `
+          <div class="flex items-center gap-1.5 text-emerald-700 font-fun">
+            <span>✅</span> ${organData.name}
+          </div>
+        `;
+
+        const card = document.getElementById(`card-${organId}`);
+        if (card) {
+          card.classList.add('placed');
+        }
+
+        score += 100;
+        placedCount++;
+        document.getElementById('score-display').textContent = score;
+        document.getElementById('progress-display').textContent = `${placedCount}/10`;
+
+        playSound('correct');
+        updateSvgLines();
+
+        setFeedback(`¡Genial! El/La ${organData.name} está en el lugar correcto.`, 'text-emerald-600');
+
+        if (placedCount === ORGANS_DATA.length) {
+          setTimeout(handleWin, 400);
+        }
+
+      } else {
+        // ERROR
+        score = Math.max(0, score - 15);
+        document.getElementById('score-display').textContent = score;
+        playSound('wrong');
+
+        setFeedback(`¡Ups! Ese no es el lugar del/de la ${organData.name}. ¡Sigue intentando!`, 'text-rose-500');
+      }
+    }
+
+    function setFeedback(text, colorClass) {
+      const feedbackText = document.getElementById('feedback-text');
+      feedbackText.textContent = text;
+      feedbackText.className = `text-sm md:text-base font-bold ${colorClass}`;
+    }
+
+    // SISTEMA DE PISTAS VISUALES
+    function giveHint() {
+      const unplaced = ORGANS_DATA.filter(o => !document.getElementById(o.dropId).classList.contains('correct'));
+      if (unplaced.length === 0) return;
+
+      const hintOrgan = unplaced[Math.floor(Math.random() * unplaced.length)];
+      const dropEl = document.getElementById(hintOrgan.dropId);
+      const cardEl = document.getElementById(`card-${hintOrgan.id}`);
+
+      dropEl.classList.add('drag-over');
+      if (cardEl) cardEl.style.borderColor = '#facc15';
+
+      setFeedback(`🔍 PISTA: Coloca el/la ${hintOrgan.name} en la casilla que está resaltada.`, 'text-amber-600');
+
+      setTimeout(() => {
+        dropEl.classList.remove('drag-over');
+        if (cardEl) cardEl.style.borderColor = '#38bdf8';
+      }, 2500);
+    }
+
+    // CELEBRACIÓN DE VICTORIA CON CONFETI
+    function handleWin() {
+      playSound('win');
+      document.getElementById('final-score').textContent = score;
+
+      // Confeti animado continuo
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+
+      const modal = document.getElementById('win-modal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+      }, 50);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('win-modal');
+      modal.classList.add('opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+
+    // REINICIAR JUEGO
+    function resetGame() {
+      score = 0;
+      placedCount = 0;
+      document.getElementById('score-display').textContent = '0';
+      document.getElementById('progress-display').textContent = '0/10';
+
+      ORGANS_DATA.forEach(organ => {
+        const zone = document.getElementById(organ.dropId);
+        zone.className = 'dropzone absolute w-28 md:w-32 h-10 md:h-11 flex items-center justify-center text-base md:text-lg font-fun text-sky-400 z-20';
+        zone.textContent = '?';
+      });
+
+      renderOrganBanks();
+      updateSvgLines();
+      setFeedback('¡Laboratorio listo! Arrastra cada órgano a su casilla.', 'text-sky-800');
+    }
+
+    // RECALCULAR LÍNEAS EN REDIMENSIONADO DE VENTANA
+    window.addEventListener('resize', () => {
+      updateSvgLines();
+    });
+
+    // CARGA INICIAL
+    window.onload = () => {
+      renderOrganBanks();
+      setupDropzones();
+      setTimeout(updateSvgLines, 250);
+    };
+  </script>
+</body>
+</html>
